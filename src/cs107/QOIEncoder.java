@@ -26,7 +26,17 @@ public final class QOIEncoder {
      * @return (byte[]) - Corresponding "Quite Ok Image" Header
      */
     public static byte[] qoiHeader(Helper.Image image){
-        return Helper.fail("Not Implemented");
+        assert image != null : "Image is null";
+        int channelNumber = image.channels();
+        assert channelNumber == QOISpecification.RGB || channelNumber == QOISpecification.RGBA : "Number of channels is corrupted";
+        int colorSpace = image.color_space();
+        assert colorSpace == QOISpecification.sRGB || colorSpace == QOISpecification.ALL : "Colorspace is corrupted";
+
+        int[][] imageData = image.data();
+        int height = imageData.length;
+        int width = imageData[0].length;
+        byte[] result =  ArrayUtils.concat(QOISpecification.QOI_MAGIC, ArrayUtils.fromInt(width), ArrayUtils.fromInt(height), ArrayUtils.wrap((byte)channelNumber), ArrayUtils.wrap((byte)colorSpace));
+        return result;
     }
 
     // ==================================================================================
@@ -40,7 +50,10 @@ public final class QOIEncoder {
      * @return (byte[]) - Encoding of the pixel using the QOI_OP_RGB schema
      */
     public static byte[] qoiOpRGB(byte[] pixel){
-        return Helper.fail("Not Implemented");
+        assert pixel != null : "Pixel is null";
+        assert pixel.length == 4 : "Pixel length is not 4";
+
+        return ArrayUtils.concat(QOISpecification.QOI_OP_RGB_TAG, pixel[0], pixel[1], pixel[2]);
     }
 
     /**
@@ -50,7 +63,10 @@ public final class QOIEncoder {
      * @return (byte[]) Encoding of the pixel using the QOI_OP_RGBA schema
      */
     public static byte[] qoiOpRGBA(byte[] pixel){
-        return Helper.fail("Not Implemented");
+        assert pixel != null : "Pixel is null";
+        assert pixel.length == 4 : "Pixel length is not 4";
+
+        return ArrayUtils.concat(ArrayUtils.wrap(QOISpecification.QOI_OP_RGBA_TAG), pixel);
     }
 
     /**
@@ -60,7 +76,8 @@ public final class QOIEncoder {
      * @return (byte[]) - Encoding of the index using the QOI_OP_INDEX schema
      */
     public static byte[] qoiOpIndex(byte index){
-        return Helper.fail("Not Implemented");
+        assert index >= 0 && index < 64 : "Index out of range";
+        return ArrayUtils.wrap(index);
     }
 
     /**
@@ -71,7 +88,19 @@ public final class QOIEncoder {
      * @return (byte[]) - Encoding of the given difference
      */
     public static byte[] qoiOpDiff(byte[] diff){
-        return Helper.fail("Not Implemented");
+        assert diff != null : "Diff is null";
+        assert diff.length == 3 : "Diff length is not 3";
+
+        byte result = 0;
+
+        for(int iByte = 0; iByte < 3; iByte++){
+            assert diff[iByte] > -3 && diff[iByte] < 2 : "diff out of range";
+            result <<= 2;
+            result |= diff[iByte] + 2;
+        }
+
+        result |= QOISpecification.QOI_OP_DIFF_TAG;
+        return ArrayUtils.wrap(result);
     }
 
     /**
@@ -83,7 +112,19 @@ public final class QOIEncoder {
      * @return (byte[]) - Encoding of the given difference
      */
     public static byte[] qoiOpLuma(byte[] diff){
-        return Helper.fail("Not Implemented");
+        assert diff != null : "Diff is null";
+        assert diff.length == 3 : "Diff length is not 3";
+        byte[] result = new byte[2];
+        assert diff[1] > -33 && diff[1] < 32 : "Diff out of bound";
+        result[0] = (byte)((diff[1] + 32) | QOISpecification.QOI_OP_LUMA_TAG);
+        byte diff1 = (byte)(diff[0]-diff[1]);
+        byte diff2 = (byte)(diff[2]-diff[1]);
+        assert diff1 > -9 && diff1 < 8 : "Diff1 out of range";
+        assert diff2 > -9 && diff2 < 8 : "Diff2 out of range";
+        diff1 += 8;
+        diff2 += 8;
+        result[1] = (byte)((diff1 << 4) | diff2);
+        return result;
     }
 
     /**
@@ -93,7 +134,8 @@ public final class QOIEncoder {
      * @return (byte[]) - Encoding of count
      */
     public static byte[] qoiOpRun(byte count){
-        return Helper.fail("Not Implemented");
+        assert count >= 1 && count <= 62 : "Count is out of bound";
+        return ArrayUtils.wrap((byte)((count - 1) | QOISpecification.QOI_OP_RUN_TAG));
     }
 
     // ==================================================================================

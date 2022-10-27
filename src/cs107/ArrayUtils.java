@@ -92,7 +92,7 @@ public final class ArrayUtils {
         int result = 0;
         for(int iByte = 0; iByte < 4; iByte++){
             result <<= 8;
-            result |= (bytes[iByte] & 0xFF);
+            result |= (bytes[iByte] & 0x00_00_00FF);
         }
         return result;
     }
