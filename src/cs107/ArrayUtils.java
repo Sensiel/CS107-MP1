@@ -161,7 +161,7 @@ public final class ArrayUtils {
     /**
      * Extract an array from another array
      * @param input (byte[]) - Array to extract from
-     * @param start (int) - Index in the input array to start the extract from
+     * @param start (int) - Index in the input array to ézstart the extract from
      * @param length (int) - The number of bytes to extract
      * @return (byte[]) - The extracted array
      * @throws AssertionError if the input is null or start and length are invalid.

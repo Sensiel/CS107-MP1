@@ -27,7 +27,20 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.1
      */
     public static int[] decodeHeader(byte[] header){
-        return Helper.fail("Not Implemented");
+        assert header != null: "Header is null";
+        assert header.length ==QOISpecification.HEADER_SIZE;
+        assert (ArrayUtils.equals(ArrayUtils.extract(header, 0, 4),QOISpecification.QOI_MAGIC)): "Header size not valid";
+        assert (header[12] ==QOISpecification.RGB) ||(header[12] ==QOISpecification.RGBA) : "Canal channel number is invalid";
+        assert (header[13] ==QOISpecification.ALL) ||(header[13] ==QOISpecification.sRGB) : "Color Space is invalid";
+
+        byte[] height = ArrayUtils.extract(header,8, 4);
+        int heightInt = ArrayUtils.toInt(height);
+        byte[] width = ArrayUtils.extract(header,4, 4);
+        int widthInt = ArrayUtils.toInt(width);
+        int channelNumber = (int)(header[12]);
+        int colorSpace= (int)(header[13]);
+        int[] result = new int [] {widthInt, heightInt, channelNumber, colorSpace};
+        return result;
     }
 
     // ==================================================================================
@@ -45,7 +58,15 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.2.1
      */
     public static int decodeQoiOpRGB(byte[][] buffer, byte[] input, byte alpha, int position, int idx){
-        return Helper.fail("Not Implemented");
+        assert buffer != null : "Buffer is null";
+        assert input != null : "Input is null";
+        assert position >= 0 && position < buffer.length: "Position out of bound";
+        assert idx >= 0 && idx< input.length: "Idx out of bound";
+        assert idx >= 0 && (idx+2)< input.length: "Idx out of bound";
+        byte[] valueRGB = ArrayUtils.extract(input,idx, 3);
+        byte[] valueRGBA = ArrayUtils.concat(valueRGB,ArrayUtils.wrap(alpha));
+        buffer[position]= valueRGBA;
+        return 3;
     }
 
     /**
@@ -58,7 +79,14 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.2.2
      */
     public static int decodeQoiOpRGBA(byte[][] buffer, byte[] input, int position, int idx){
-        return Helper.fail("Not Implemented");
+        assert buffer != null : "Buffer is null";
+        assert input != null : "Input is null";
+        assert position >= 0 && position < buffer.length: "Position out of bound";
+        assert idx >= 0 && idx< input.length: "Idx out of bound";
+        assert idx >= 0 && (idx+3)< input.length: "Idx out of bound";
+        byte[] valueRGBA = ArrayUtils.extract(input,idx, 4);
+        buffer[position]= valueRGBA;
+        return 4;
     }
 
     /**
@@ -69,7 +97,17 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.2.4
      */
     public static byte[] decodeQoiOpDiff(byte[] previousPixel, byte chunk){
-        return Helper.fail("Not Implemented");
+        assert previousPixel != null: "PreviousPixel is null" ;
+        assert previousPixel.length==4 : "Pixel invalid";
+        assert (chunk & 0b11000000) == QOISpecification.QOI_OP_DIFF_TAG :"Tag invalid";
+        byte maskR = (byte)(chunk & 0b00110000);
+        byte maskG = (byte)(chunk & 0b00001100);
+        byte maskB = (byte)(chunk & 0b00000011);
+        byte dr = (byte)((maskR >> 4) - 2);
+        byte dg = (byte)((maskG >> 2) - 2);
+        byte db = (byte)(maskB - 2);
+        byte[] valueRGBA = new byte []{(byte)(previousPixel[QOISpecification.r]+ dr),(byte)(previousPixel[QOISpecification.g]+ dg),(byte)(previousPixel[QOISpecification.b]+ db),previousPixel[QOISpecification.a]};
+        return valueRGBA;
     }
 
     /**
