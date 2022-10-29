@@ -146,7 +146,7 @@ public final class QOIDecoder {
         assert pixel != null :"Pixel is null";
         assert position>=0 && position< buffer.length : "Position out of bound";
         byte count = (byte)(chunk & 0b00111111);
-        assert buffer[0].length == 4 && buffer.length >= count;
+        assert buffer[0].length == 4 && buffer.length >= count:"Buffer not valid";
         for(int iBuffer=0; iBuffer <= count; ++iBuffer){
             buffer[position+iBuffer]= pixel;
         }
