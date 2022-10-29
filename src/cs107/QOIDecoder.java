@@ -118,7 +118,17 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.2.5
      */
     public static byte[] decodeQoiOpLuma(byte[] previousPixel, byte[] data){
-        return Helper.fail("Not Implemented");
+        assert previousPixel != null: "PreviousPixel is null" ;
+        assert previousPixel.length == 4 : "Pixel invalid";
+        assert (data[0] & 0b11000000) == QOISpecification.QOI_OP_LUMA_TAG:"Tag invalid";
+        byte maskG = (byte)(data[0] & 0b00111111);
+        byte dg = (byte)(maskG - 32);
+        byte maskR_G = (byte)(data[1] & 0b11110000);
+        byte dr = (byte)(((maskR_G >> 4) - 8) + dg);
+        byte maskB_G = (byte)(data[1] & 0b00001111);
+        byte db = (byte)((maskB_G + 8) + dg);
+        byte[] valueRGBA = new byte []{(byte)(previousPixel[QOISpecification.r]+ dr),(byte)(previousPixel[QOISpecification.g]+ dg),(byte)(previousPixel[QOISpecification.b]+ db),previousPixel[QOISpecification.a]};
+        return valueRGBA;
     }
 
     /**
@@ -131,7 +141,16 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.2.6
      */
     public static int decodeQoiOpRun(byte[][] buffer, byte[] pixel, byte chunk, int position){
-        return Helper.fail("Not Implemented");
+        assert buffer != null : "Buffer is null";
+        assert pixel.length==4 : "Pixel not valid";
+        assert pixel != null :"Pixel is null";
+        assert position>=0 && position< buffer.length : "Position out of bound";
+        byte count = (byte)(chunk & 0b00111111);
+        assert buffer[0].length == 4 && buffer.length >= count;
+        for(int iBuffer=0; iBuffer <= count; ++iBuffer){
+            buffer[position+iBuffer]= pixel;
+        }
+        return count;
     }
 
     // ==================================================================================
