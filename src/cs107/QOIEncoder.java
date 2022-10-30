@@ -186,17 +186,18 @@ public final class QOIEncoder {
             }
 
             if (image[iPixel][QOISpecification.a] == ancien[QOISpecification.a]) {
-                int dr = image[iPixel][QOISpecification.r] - ancien[QOISpecification.r];
-                int dg = image[iPixel][QOISpecification.g] - ancien[QOISpecification.g];
-                int db = image[iPixel][QOISpecification.b] - ancien[QOISpecification.b];
+                byte dr = (byte)(image[iPixel][QOISpecification.r] - ancien[QOISpecification.r]);
+                byte dg = (byte)(image[iPixel][QOISpecification.g] - ancien[QOISpecification.g]);
+                byte db = (byte)(image[iPixel][QOISpecification.b] - ancien[QOISpecification.b]);
                 if ((dr > -3 && dr < 2) && (dg > -3 && dg < 2) && (db > -3 && db < 2)) {
-                    byte[] diff = new byte[]{(byte)dr, (byte)dg, (byte)db};
+                    byte[] diff = new byte[]{dr, dg, db};
                     tab.add(qoiOpDiff(diff));
                     continue;
                 }
-
-                if((dg > -33 && dg < 32) && (dr - dg > -9 && dr - dg < 8) && (db - dg > -9 && db - dg < 8)){
-                    byte[] luma = new byte[]{(byte)dr, (byte)dg, (byte)db};
+                byte dRG = (byte)(dr - dg);
+                byte dBG = (byte)(db - dg);
+                if((dg > -33 && dg < 32) && (dRG > -9 && dRG < 8) && (dBG > -9 && dBG < 8)){
+                    byte[] luma = new byte[]{dr, dg, db};
                     tab.add(qoiOpLuma(luma));
                     continue;
                 }

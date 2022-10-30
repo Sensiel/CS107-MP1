@@ -1,5 +1,7 @@
 package cs107;
 
+import java.util.Arrays;
+
 import static cs107.Helper.Image;
 
 /**
@@ -83,7 +85,7 @@ public final class QOIDecoder {
         assert input != null : "Input is null";
         assert position >= 0 && position < buffer.length: "Position out of bound";
         assert idx >= 0 && idx< input.length: "Idx out of bound";
-        assert idx >= 0 && (idx+3)< input.length: "Idx out of bound";
+        assert (idx+3) < input.length: "Idx out of bound";
         byte[] valueRGBA = ArrayUtils.extract(input,idx, 4);
         buffer[position]= valueRGBA;
         return 4;
@@ -98,7 +100,7 @@ public final class QOIDecoder {
      */
     public static byte[] decodeQoiOpDiff(byte[] previousPixel, byte chunk){
         assert previousPixel != null: "PreviousPixel is null" ;
-        assert previousPixel.length==4 : "Pixel invalid";
+        assert previousPixel.length == 4 : "Pixel invalid";
         assert (chunk & 0b11000000) == QOISpecification.QOI_OP_DIFF_TAG :"Tag invalid";
         byte maskR = (byte)(chunk & 0b00110000);
         byte maskG = (byte)(chunk & 0b00001100);
@@ -119,15 +121,21 @@ public final class QOIDecoder {
      */
     public static byte[] decodeQoiOpLuma(byte[] previousPixel, byte[] data){
         assert previousPixel != null: "PreviousPixel is null" ;
+        assert data != null : "data is null";
         assert previousPixel.length == 4 : "Pixel invalid";
-        assert (data[0] & 0b11000000) == QOISpecification.QOI_OP_LUMA_TAG:"Tag invalid";
+        assert (byte)(data[0] & 0b11000000) == QOISpecification.QOI_OP_LUMA_TAG:"Tag invalid";
+
         byte maskG = (byte)(data[0] & 0b00111111);
+        byte maskRG = (byte)((data[1] & 0b11110000) >> 4);
+        byte maskBG = (byte)(data[1] & 0b00001111);
         byte dg = (byte)(maskG - 32);
-        byte maskR_G = (byte)(data[1] & 0b11110000);
-        byte dr = (byte)(((maskR_G >> 4) - 8) + dg);
-        byte maskB_G = (byte)(data[1] & 0b00001111);
-        byte db = (byte)((maskB_G + 8) + dg);
-        byte[] valueRGBA = new byte []{(byte)(previousPixel[QOISpecification.r]+ dr),(byte)(previousPixel[QOISpecification.g]+ dg),(byte)(previousPixel[QOISpecification.b]+ db),previousPixel[QOISpecification.a]};
+        byte dr = (byte)((maskRG - 8) + dg);
+        byte db = (byte)((maskBG - 8) + dg);
+        byte[] valueRGBA = new byte []{
+                (byte)(previousPixel[QOISpecification.r] + dr),
+                (byte)(previousPixel[QOISpecification.g] + dg),
+                (byte)(previousPixel[QOISpecification.b] + db),
+                previousPixel[QOISpecification.a]};
         return valueRGBA;
     }
 
@@ -142,13 +150,13 @@ public final class QOIDecoder {
      */
     public static int decodeQoiOpRun(byte[][] buffer, byte[] pixel, byte chunk, int position){
         assert buffer != null : "Buffer is null";
-        assert pixel.length==4 : "Pixel not valid";
         assert pixel != null :"Pixel is null";
-        assert position>=0 && position< buffer.length : "Position out of bound";
+        assert pixel.length == 4 : "Pixel not valid";
+        assert position >= 0 && position < buffer.length : "Position out of bound";
         byte count = (byte)(chunk & 0b00111111);
-        assert buffer[0].length == 4 && buffer.length >= count:"Buffer not valid";
-        for(int iBuffer=0; iBuffer <= count; ++iBuffer){
-            buffer[position+iBuffer]= pixel;
+        assert (position + count) < buffer.length: "Buffer not valid";
+        for(int iBuffer = 0; iBuffer <= count; iBuffer++){
+            buffer[position + iBuffer] = pixel;
         }
         return count;
     }
