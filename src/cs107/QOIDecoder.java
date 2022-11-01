@@ -64,10 +64,10 @@ public final class QOIDecoder {
         assert input != null : "Input is null";
         assert position >= 0 && position < buffer.length: "Position out of bound";
         assert idx >= 0 && idx< input.length: "Idx out of bound";
-        assert idx >= 0 && (idx+2)< input.length: "Idx out of bound";
+        assert idx >= 0 && (idx+2) < input.length: "Idx out of bound";
         byte[] valueRGB = ArrayUtils.extract(input,idx, 3);
         byte[] valueRGBA = ArrayUtils.concat(valueRGB,ArrayUtils.wrap(alpha));
-        buffer[position]= valueRGBA;
+        buffer[position] = valueRGBA;
         return 3;
     }
 
@@ -84,7 +84,7 @@ public final class QOIDecoder {
         assert buffer != null : "Buffer is null";
         assert input != null : "Input is null";
         assert position >= 0 && position < buffer.length: "Position out of bound";
-        assert idx >= 0 && idx< input.length: "Idx out of bound";
+        assert idx >= 0 && idx < input.length: "Idx out of bound";
         assert (idx+3) < input.length: "Idx out of bound";
         byte[] valueRGBA = ArrayUtils.extract(input,idx, 4);
         buffer[position]= valueRGBA;
@@ -175,44 +175,54 @@ public final class QOIDecoder {
      */
     public static byte[][] decodeData(byte[] data, int width, int height){
         assert data != null : "Data is null";
-        assert width >= 0 && height >=0: "width and height are not valid";
+        assert width >= 0 && height >= 0: "width and height are not valid";
         // Manque 3e assert
-        byte[] ancien= QOISpecification.START_PIXEL;
-        byte [][] result = new byte[][]; // ?????
+        byte[] ancien = QOISpecification.START_PIXEL;
+        byte[][] result = new byte[height * width][4];
         byte[][] hashTable = new byte [64][4]; // pas utilisé :/
-        int position =0;
+        int position = 0;
         for (int idx = 0; idx < data.length; ++idx){
-            if(idx != 0) { ++position; }
-            // tag = 1 byte
-            if (data[idx] == QOISpecification.QOI_OP_RGB_TAG){
-                idx += decodeQoiOpRGB(result,data,ancien[QOISpecification.a],position, idx);
-            }
-            continue;
-            if(data[idx]== QOISpecification.QOI_OP_RGBA_TAG){
-                idx += decodeQoiOpRGBA(result,data,position,idx);
-                }
-            continue;
-            // tag = 2 bits
-            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_DIFF_TAG){
-                result[position]= decodeQoiOpDiff(ancien,data[idx]);
-            }
-            continue;
-            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_LUMA_TAG){
-                result[position]= decodeQoiOpLuma(ancien,ArrayUtils.extract(data,idx,2));
-                ++idx;
-            }
-            continue;
-            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_RUN_TAG){
-                position += decodeQoiOpRun(result,ancien,data[idx],position);
-            }
-            continue;
-            //c un peu de la d psk jai r compris à l'index
-            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_INDEX_TAG){
-                byte index = (byte)(data[idx]& 0b00_11_11_11);
-                result[position]=hashTable[index];
+            if(idx != 0) {
+                ++position;
+                ancien = result[position - 1];
+                hashTable[QOISpecification.hash(ancien)] = ancien;
             }
 
+            if(data[idx] == QOISpecification.QOI_OP_RGB_TAG){
+                idx++;
+                idx += decodeQoiOpRGB(result,data,ancien[QOISpecification.a],position, idx) - 1;
+                continue;
+            }
+
+            if(data[idx] == QOISpecification.QOI_OP_RGBA_TAG){
+                idx++;
+                idx += decodeQoiOpRGBA(result,data,position,idx) - 1;
+                continue;
+            }
+
+
+            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_DIFF_TAG){
+                result[position] = decodeQoiOpDiff(ancien,data[idx]);
+                continue;
+            }
+
+            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_LUMA_TAG){
+                result[position]= decodeQoiOpLuma(ancien,ArrayUtils.extract(data,idx,2));
+                ++idx;
+                continue;
+            }
+
+            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_RUN_TAG){
+                position += decodeQoiOpRun(result,ancien,data[idx],position);
+                continue;
+            }
+
+            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_INDEX_TAG){
+                byte index = (byte)(data[idx]& 0b00_11_11_11);
+                result[position] = hashTable[index];
+            }
         }
+        assert position == height * width - 1: "Result invalid";
 
         return result;
     }
@@ -225,9 +235,13 @@ public final class QOIDecoder {
      */
     public static Image decodeQoiFile(byte[] content){
         assert content != null : "Content is null";
-        assert ArrayUtils.extract(content,(content.length - QOISpecification.QOI_EOF.length - 1),QOISpecification.QOI_EOF.length) == QOISpecification.QOI_EOF: "La signature de fin de fichier est corrompue";
 
-        return Helper.fail("Not Implemented");
+        //TODO assert
+        //assert ArrayUtils.equals(ArrayUtils.extract(content, (content.length - QOISpecification.QOI_EOF.length - 1), QOISpecification.QOI_EOF.length), QOISpecification.QOI_EOF): "La signature de fin de fichier est corrompue";
+        int[] header = decodeHeader(ArrayUtils.extract(content, 0, 14));
+        byte[][] buffer = decodeData(ArrayUtils.extract(content, 14, content.length - QOISpecification.QOI_EOF.length - 14), header[0], header[1]);
+        int[][] tabResult = ArrayUtils.channelsToImage(buffer, header[1], header[0]);
+        return Helper.generateImage(tabResult, (byte)header[2], (byte)header[3]);
     }
 
 }
