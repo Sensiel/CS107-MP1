@@ -174,7 +174,47 @@ public final class QOIDecoder {
      * @throws AssertionError See handouts section 6.3
      */
     public static byte[][] decodeData(byte[] data, int width, int height){
-        return Helper.fail("Not Implemented");
+        assert data != null : "Data is null";
+        assert width >= 0 && height >=0: "width and height are not valid";
+        // Manque 3e assert
+        byte[] ancien= QOISpecification.START_PIXEL;
+        byte [][] result = new byte[][]; // ?????
+        byte[][] hashTable = new byte [64][4]; // pas utilisé :/
+        int position =0;
+        for (int idx = 0; idx < data.length; ++idx){
+            if(idx != 0) { ++position; }
+            // tag = 1 byte
+            if (data[idx] == QOISpecification.QOI_OP_RGB_TAG){
+                idx += decodeQoiOpRGB(result,data,ancien[QOISpecification.a],position, idx);
+            }
+            continue;
+            if(data[idx]== QOISpecification.QOI_OP_RGBA_TAG){
+                idx += decodeQoiOpRGBA(result,data,position,idx);
+                }
+            continue;
+            // tag = 2 bits
+            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_DIFF_TAG){
+                result[position]= decodeQoiOpDiff(ancien,data[idx]);
+            }
+            continue;
+            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_LUMA_TAG){
+                result[position]= decodeQoiOpLuma(ancien,ArrayUtils.extract(data,idx,2));
+                ++idx;
+            }
+            continue;
+            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_RUN_TAG){
+                position += decodeQoiOpRun(result,ancien,data[idx],position);
+            }
+            continue;
+            //c un peu de la d psk jai r compris à l'index
+            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_INDEX_TAG){
+                byte index = (byte)(data[idx]& 0b00_11_11_11);
+                result[position]=hashTable[index];
+            }
+
+        }
+
+        return result;
     }
 
     /**
@@ -184,6 +224,9 @@ public final class QOIDecoder {
      * @throws AssertionError if content is null
      */
     public static Image decodeQoiFile(byte[] content){
+        assert content != null : "Content is null";
+        assert ArrayUtils.extract(content,(content.length - QOISpecification.QOI_EOF.length - 1),QOISpecification.QOI_EOF.length) == QOISpecification.QOI_EOF: "La signature de fin de fichier est corrompue";
+
         return Helper.fail("Not Implemented");
     }
 
