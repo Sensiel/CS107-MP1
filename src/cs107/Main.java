@@ -69,8 +69,6 @@ public final class Main {
         assert testDecodeQoiOpRun();
         assert testDecodeData();
 
-        Helper.writeImage("cube.png", QOIDecoder.decodeQoiFile(Helper.read("C:\\Users\\Sensiel\\Java Project\\MP1\\CS107-MP1\\references\\cube.qoi")));
-        Diff.diff("C:\\Users\\Sensiel\\Java Project\\MP1\\CS107-MP1\\references\\cube.png", "C:\\Users\\Sensiel\\Java Project\\MP1\\res\\cube.png");
         System.out.println("All the tests passes. Congratulations");
     }
 

@@ -1,7 +1,6 @@
 package cs107;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 /**
  * "Quite Ok Image" Encoder
@@ -30,15 +29,20 @@ public final class QOIEncoder {
      */
     public static byte[] qoiHeader(Helper.Image image){
         assert image != null : "Image is null";
-        int channelNumber = image.channels();
+        byte channelNumber = image.channels();
         assert channelNumber == QOISpecification.RGB || channelNumber == QOISpecification.RGBA : "Number of channels is corrupted";
-        int colorSpace = image.color_space();
+        byte colorSpace = image.color_space();
         assert colorSpace == QOISpecification.sRGB || colorSpace == QOISpecification.ALL : "Colorspace is corrupted";
 
         int[][] imageData = image.data();
         int height = imageData.length;
         int width = imageData[0].length;
-        byte[] result =  ArrayUtils.concat(QOISpecification.QOI_MAGIC, ArrayUtils.fromInt(width), ArrayUtils.fromInt(height), ArrayUtils.wrap((byte)channelNumber), ArrayUtils.wrap((byte)colorSpace));
+        byte[] result =  ArrayUtils.concat(
+                QOISpecification.QOI_MAGIC,
+                ArrayUtils.fromInt(width),
+                ArrayUtils.fromInt(height),
+                ArrayUtils.wrap(channelNumber),
+                ArrayUtils.wrap(colorSpace));
         return result;
     }
 
@@ -55,7 +59,7 @@ public final class QOIEncoder {
     public static byte[] qoiOpRGB(byte[] pixel){
         assert pixel != null : "Pixel is null";
         assert pixel.length == 4 : "Pixel length is not 4";
-        //System.out.println("RGB");
+
         return ArrayUtils.concat(QOISpecification.QOI_OP_RGB_TAG, pixel[0], pixel[1], pixel[2]);
     }
 
@@ -68,7 +72,7 @@ public final class QOIEncoder {
     public static byte[] qoiOpRGBA(byte[] pixel){
         assert pixel != null : "Pixel is null";
         assert pixel.length == 4 : "Pixel length is not 4";
-        //System.out.println("RGBA");
+
         return ArrayUtils.concat(ArrayUtils.wrap(QOISpecification.QOI_OP_RGBA_TAG), pixel);
     }
 
@@ -80,7 +84,7 @@ public final class QOIEncoder {
      */
     public static byte[] qoiOpIndex(byte index){
         assert index >= 0 && index < 64 : "Index out of range";
-        //System.out.println("Index");
+
         return ArrayUtils.wrap(index);
     }
 
@@ -94,7 +98,7 @@ public final class QOIEncoder {
     public static byte[] qoiOpDiff(byte[] diff){
         assert diff != null : "Diff is null";
         assert diff.length == 3 : "Diff length is not 3";
-        //System.out.println("Diff");
+
         byte result = 0;
 
         for(int iByte = 0; iByte < 3; iByte++){
@@ -118,17 +122,20 @@ public final class QOIEncoder {
     public static byte[] qoiOpLuma(byte[] diff){
         assert diff != null : "Diff is null";
         assert diff.length == 3 : "Diff length is not 3";
-        byte[] result = new byte[2];
         assert diff[1] > -33 && diff[1] < 32 : "Diff out of bound";
+
+        byte[] result = new byte[2];
         result[0] = (byte)((diff[1] + 32) | QOISpecification.QOI_OP_LUMA_TAG);
+
         byte diff1 = (byte)(diff[0]-diff[1]);
         byte diff2 = (byte)(diff[2]-diff[1]);
         assert diff1 > -9 && diff1 < 8 : "Diff1 out of range";
         assert diff2 > -9 && diff2 < 8 : "Diff2 out of range";
+
         diff1 += 8;
         diff2 += 8;
         result[1] = (byte)((diff1 << 4) | diff2);
-        //System.out.println("Luma");
+
         return result;
     }
 
@@ -140,7 +147,7 @@ public final class QOIEncoder {
      */
     public static byte[] qoiOpRun(byte count){
         assert count >= 1 && count <= 62 : "Count is out of bound";
-        //System.out.println("Run");
+
         return ArrayUtils.wrap((byte)((count - 1) | QOISpecification.QOI_OP_RUN_TAG));
     }
 
@@ -163,9 +170,11 @@ public final class QOIEncoder {
         for(int iPixel = 0; iPixel < image.length; iPixel++) {
             assert image[iPixel] != null : "Current pixel is null";
             assert image[iPixel].length == 4 : "Current pixel is invalid";
+
             if(iPixel != 0){
                 ancien = image[iPixel - 1];
             }
+
             if (ArrayUtils.equals(ancien, image[iPixel])) {
                 compteur++;
                 if (compteur == 62 || iPixel == image.length - 1) {
@@ -181,7 +190,8 @@ public final class QOIEncoder {
             if (ArrayUtils.equals(hashTable[QOISpecification.hash(image[iPixel])], image[iPixel])) {
                 tab.add(qoiOpIndex(QOISpecification.hash(image[iPixel])));
                 continue;
-            } else {
+            }
+            else {
                 hashTable[QOISpecification.hash(image[iPixel])] = image[iPixel];
             }
 
@@ -189,13 +199,16 @@ public final class QOIEncoder {
                 byte dr = (byte)(image[iPixel][QOISpecification.r] - ancien[QOISpecification.r]);
                 byte dg = (byte)(image[iPixel][QOISpecification.g] - ancien[QOISpecification.g]);
                 byte db = (byte)(image[iPixel][QOISpecification.b] - ancien[QOISpecification.b]);
+
                 if ((dr > -3 && dr < 2) && (dg > -3 && dg < 2) && (db > -3 && db < 2)) {
                     byte[] diff = new byte[]{dr, dg, db};
                     tab.add(qoiOpDiff(diff));
                     continue;
                 }
+
                 byte dRG = (byte)(dr - dg);
                 byte dBG = (byte)(db - dg);
+
                 if((dg > -33 && dg < 32) && (dRG > -9 && dRG < 8) && (dBG > -9 && dBG < 8)){
                     byte[] luma = new byte[]{dr, dg, db};
                     tab.add(qoiOpLuma(luma));
@@ -208,8 +221,6 @@ public final class QOIEncoder {
             tab.add(qoiOpRGBA(image[iPixel]));
         }
         byte[][] result = new byte[tab.size()][];
-        byte[] temp = ArrayUtils.concat(tab.toArray(result));
-        //Hexdump.hexdump(temp);
         return ArrayUtils.concat(tab.toArray(result));
     }
 
@@ -228,5 +239,4 @@ public final class QOIEncoder {
         byte[] body = encodeData(ArrayUtils.imageToChannels(image.data()));
         return ArrayUtils.concat(header, body, signature);
     }
-
 }

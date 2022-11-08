@@ -1,7 +1,5 @@
 package cs107;
 
-import java.util.Arrays;
-
 import static cs107.Helper.Image;
 
 /**
@@ -30,17 +28,17 @@ public final class QOIDecoder {
      */
     public static int[] decodeHeader(byte[] header){
         assert header != null: "Header is null";
-        assert header.length ==QOISpecification.HEADER_SIZE;
-        assert (ArrayUtils.equals(ArrayUtils.extract(header, 0, 4),QOISpecification.QOI_MAGIC)): "Header size not valid";
-        assert (header[12] ==QOISpecification.RGB) ||(header[12] ==QOISpecification.RGBA) : "Canal channel number is invalid";
-        assert (header[13] ==QOISpecification.ALL) ||(header[13] ==QOISpecification.sRGB) : "Color Space is invalid";
+        assert header.length == QOISpecification.HEADER_SIZE;
+        assert (ArrayUtils.equals(ArrayUtils.extract(header, 0, 4), QOISpecification.QOI_MAGIC)): "Header size not valid";
+        assert (header[12] == QOISpecification.RGB) ||(header[12] == QOISpecification.RGBA) : "Canal channel number is invalid";
+        assert (header[13] == QOISpecification.ALL) ||(header[13] == QOISpecification.sRGB) : "Color Space is invalid";
 
-        byte[] height = ArrayUtils.extract(header,8, 4);
+        byte[] height = ArrayUtils.extract(header, 8, 4);
         int heightInt = ArrayUtils.toInt(height);
-        byte[] width = ArrayUtils.extract(header,4, 4);
+        byte[] width = ArrayUtils.extract(header, 4, 4);
         int widthInt = ArrayUtils.toInt(width);
-        int channelNumber = (int)(header[12]);
-        int colorSpace= (int)(header[13]);
+        int channelNumber = (0xFF & header[12]);
+        int colorSpace= (0xFF & header[13]);
         int[] result = new int [] {widthInt, heightInt, channelNumber, colorSpace};
         return result;
     }
@@ -63,10 +61,11 @@ public final class QOIDecoder {
         assert buffer != null : "Buffer is null";
         assert input != null : "Input is null";
         assert position >= 0 && position < buffer.length: "Position out of bound";
-        assert idx >= 0 && idx< input.length: "Idx out of bound";
-        assert idx >= 0 && (idx+2) < input.length: "Idx out of bound";
-        byte[] valueRGB = ArrayUtils.extract(input,idx, 3);
-        byte[] valueRGBA = ArrayUtils.concat(valueRGB,ArrayUtils.wrap(alpha));
+        assert idx >= 0 && idx < input.length: "Idx out of bound";
+        assert (idx+2) < input.length: "Idx out of bound";
+
+        byte[] valueRGB = ArrayUtils.extract(input, idx, 3);
+        byte[] valueRGBA = ArrayUtils.concat(valueRGB, ArrayUtils.wrap(alpha));
         buffer[position] = valueRGBA;
         return 3;
     }
@@ -86,8 +85,8 @@ public final class QOIDecoder {
         assert position >= 0 && position < buffer.length: "Position out of bound";
         assert idx >= 0 && idx < input.length: "Idx out of bound";
         assert (idx+3) < input.length: "Idx out of bound";
-        byte[] valueRGBA = ArrayUtils.extract(input,idx, 4);
-        buffer[position]= valueRGBA;
+        byte[] valueRGBA = ArrayUtils.extract(input, idx, 4);
+        buffer[position] = valueRGBA;
         return 4;
     }
 
@@ -108,7 +107,11 @@ public final class QOIDecoder {
         byte dr = (byte)((maskR >> 4) - 2);
         byte dg = (byte)((maskG >> 2) - 2);
         byte db = (byte)(maskB - 2);
-        byte[] valueRGBA = new byte []{(byte)(previousPixel[QOISpecification.r]+ dr),(byte)(previousPixel[QOISpecification.g]+ dg),(byte)(previousPixel[QOISpecification.b]+ db),previousPixel[QOISpecification.a]};
+        byte[] valueRGBA = new byte []{
+                (byte)(previousPixel[QOISpecification.r]+ dr),
+                (byte)(previousPixel[QOISpecification.g]+ dg),
+                (byte)(previousPixel[QOISpecification.b]+ db),
+                previousPixel[QOISpecification.a]};
         return valueRGBA;
     }
 
@@ -150,7 +153,7 @@ public final class QOIDecoder {
      */
     public static int decodeQoiOpRun(byte[][] buffer, byte[] pixel, byte chunk, int position){
         assert buffer != null : "Buffer is null";
-        assert pixel != null :"Pixel is null";
+        assert pixel != null : "Pixel is null";
         assert pixel.length == 4 : "Pixel not valid";
         assert position >= 0 && position < buffer.length : "Position out of bound";
         byte count = (byte)(chunk & 0b00111111);
@@ -176,10 +179,9 @@ public final class QOIDecoder {
     public static byte[][] decodeData(byte[] data, int width, int height){
         assert data != null : "Data is null";
         assert width >= 0 && height >= 0: "width and height are not valid";
-        // Manque 3e assert
         byte[] ancien = QOISpecification.START_PIXEL;
         byte[][] result = new byte[height * width][4];
-        byte[][] hashTable = new byte [64][4]; // pas utilisé :/
+        byte[][] hashTable = new byte [64][4];
         int position = 0;
         for (int idx = 0; idx < data.length; ++idx){
             if(idx != 0) {
@@ -190,35 +192,35 @@ public final class QOIDecoder {
 
             if(data[idx] == QOISpecification.QOI_OP_RGB_TAG){
                 idx++;
-                idx += decodeQoiOpRGB(result,data,ancien[QOISpecification.a],position, idx) - 1;
+                idx += decodeQoiOpRGB(result, data, ancien[QOISpecification.a], position, idx) - 1;
                 continue;
             }
 
             if(data[idx] == QOISpecification.QOI_OP_RGBA_TAG){
                 idx++;
-                idx += decodeQoiOpRGBA(result,data,position,idx) - 1;
+                idx += decodeQoiOpRGBA(result, data, position, idx) - 1;
                 continue;
             }
 
 
             if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_DIFF_TAG){
-                result[position] = decodeQoiOpDiff(ancien,data[idx]);
+                result[position] = decodeQoiOpDiff(ancien, data[idx]);
                 continue;
             }
 
             if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_LUMA_TAG){
-                result[position]= decodeQoiOpLuma(ancien,ArrayUtils.extract(data,idx,2));
+                result[position] = decodeQoiOpLuma(ancien, ArrayUtils.extract(data, idx, 2));
                 ++idx;
                 continue;
             }
 
             if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_RUN_TAG){
-                position += decodeQoiOpRun(result,ancien,data[idx],position);
+                position += decodeQoiOpRun(result, ancien, data[idx], position);
                 continue;
             }
 
-            if((byte)(data[idx]& 0b11_00_00_00) == QOISpecification.QOI_OP_INDEX_TAG){
-                byte index = (byte)(data[idx]& 0b00_11_11_11);
+            if((byte)(data[idx] & 0b11_00_00_00) == QOISpecification.QOI_OP_INDEX_TAG){
+                byte index = (byte)(data[idx] & 0b00_11_11_11);
                 result[position] = hashTable[index];
             }
         }
@@ -235,12 +237,14 @@ public final class QOIDecoder {
      */
     public static Image decodeQoiFile(byte[] content){
         assert content != null : "Content is null";
+        byte[] contentSignature = ArrayUtils.extract(content, content.length - QOISpecification.QOI_EOF.length, QOISpecification.QOI_EOF.length);
 
-        //TODO assert
-        //assert ArrayUtils.equals(ArrayUtils.extract(content, (content.length - QOISpecification.QOI_EOF.length - 1), QOISpecification.QOI_EOF.length), QOISpecification.QOI_EOF): "La signature de fin de fichier est corrompue";
+        assert ArrayUtils.equals(contentSignature, QOISpecification.QOI_EOF) : "La signature de fin de fichier est corrompue";
+
         int[] header = decodeHeader(ArrayUtils.extract(content, 0, 14));
         byte[][] buffer = decodeData(ArrayUtils.extract(content, 14, content.length - QOISpecification.QOI_EOF.length - 14), header[0], header[1]);
         int[][] tabResult = ArrayUtils.channelsToImage(buffer, header[1], header[0]);
+
         return Helper.generateImage(tabResult, (byte)header[2], (byte)header[3]);
     }
 

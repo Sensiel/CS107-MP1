@@ -26,7 +26,7 @@ public final class ArrayUtils {
      * @throws AssertionError if one of the parameters is null
      */
     public static boolean equals(byte[] a1, byte[] a2){
-        assert (a1 == null) == (a2 == null) : "Both array are null";
+        assert (a1 == null) == (a2 == null) : "Only one of the array is null";
         if(a1 == null)
             return true;
         if(a1.length != a2.length)
@@ -272,8 +272,6 @@ public final class ArrayUtils {
                 result[iLig][iCol] = toInt(currARGB);
             }
         }
-
         return result;
     }
-
 }
